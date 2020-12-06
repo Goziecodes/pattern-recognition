@@ -17,7 +17,7 @@ const PatternRecognition = ({ imageUrl, box }) => {
             top: box.topRow,
             right: box.rightCol,
             bottom: box.bottomRow,
-            left: box.leftCol
+            left: box.leftCol,
           }}
           className="bounding-box"
         ></div>

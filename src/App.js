@@ -5,6 +5,7 @@ import Navigation from "./components/Navigation/Navigation";
 import Signin from "./components/Signin/Signin";
 import Register from "./components/Register/Register";
 import Logo from "./components/Logo/Logo";
+import Rank from "./components/Rank/Rank";
 import ImageLinkForm from "./components/ImageLinkForm/ImageLinkForm";
 import PatternRecognition from "./components/PatternRecognition/PatternRecognition";
 import "./App.css";
@@ -34,13 +35,33 @@ class App extends React.Component {
       box: {},
       route: "signin",
       isSignedIn: false,
+      user: {
+        id: "",
+        name: "",
+        email: "",
+        entries: 0,
+        joined: "",
+      },
     };
   }
-  componentDidMount() {
-    fetch("http://localhost:4000")
-      .then((response) => response.json())
-      .then((data) => console.log(data));
-  }
+
+  // componentDidMount() {
+  //   fetch("http://localhost:4000")
+  //     .then((response) => response.json())
+  //     .then((data) => console.log(data));
+  // }
+
+  loadUser = (user) => {
+    this.setState({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        entries: user.entries,
+        joined: user.joined,
+      },
+    });
+  };
 
   calculateFaceLocation = (data) => {
     const clarifaiFace =
@@ -72,12 +93,28 @@ class App extends React.Component {
     this.setState({ imageUrl: this.state.input });
     app.models
       .predict(Clarifai.FACE_DETECT_MODEL, this.state.input)
-      .then((response) =>
+      .then((response) => {
         // do something with response
-        this.displayFaceBox(this.calculateFaceLocation(response))
-      )
-      // console.log(response)
-      // console.log(response.outputs[0].data.regions[0].region_info.bounding_box)
+        // console.log(response)
+        // console.log(response.outputs[0].data.regions[0].region_info.bounding_box)
+        if (response) {
+          fetch("http://localhost:4000/image", {
+            method: "put",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: this.state.user.id,
+            }),
+          })
+            .then((response) => response.json())
+            .then((count) => {
+              // this replaces the entire state.user object, roving the other properties
+              // this.setState({ user: { entries: count } });
+              // so we use object.assign here to target a specific field inside state.user object to avoid overwriting other fields
+              this.setState(Object.assign(this.state.user, { entries: count }));
+            });
+        }
+        this.displayFaceBox(this.calculateFaceLocation(response));
+      })
       .catch((err) => console.log(err));
   };
 
@@ -103,6 +140,10 @@ class App extends React.Component {
         {this.state.route === "home" ? (
           <div>
             <Logo />
+            <Rank
+              name={this.state.user.name}
+              entries={this.state.user.entries}
+            />
             <ImageLinkForm
               onInputChange={this.onInputChange}
               onSubmit={this.onSubmit}
@@ -110,9 +151,12 @@ class App extends React.Component {
             <PatternRecognition imageUrl={imageUrl} box={box} />
           </div>
         ) : this.state.route === "signin" ? (
-          <Signin onRouteChange={this.onRouteChange} />
+          <Signin onRouteChange={this.onRouteChange} loadUser={this.loadUser} />
         ) : (
-          <Register onRouteChange={this.onRouteChange} />
+          <Register
+            onRouteChange={this.onRouteChange}
+            loadUser={this.loadUser}
+          />
         )}
       </div>
     );
